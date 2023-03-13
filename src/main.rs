@@ -1,9 +1,18 @@
 #![allow(dead_code)]
 
+use crate::garden::vegetables::Asparagus;
+use std::collections::HashMap;
+
+pub mod garden;
+
 fn main() {
     // using_structs();
     // using_struct_methods();
-    using_enums();
+    // using_enums();
+    // project_structure();
+    vectors();
+    // strings();
+    // hashmaps();
 }
 
 fn f_to_c(f: f64) -> f64 {
@@ -237,4 +246,108 @@ fn using_enums() {
     if let Some(max) = config_max {
         println!("The maximum is configured to be {}", max);
     }
+}
+
+fn project_structure() {
+    let plant = Asparagus {};
+    println!("I'm growing {:?}", plant);
+}
+
+fn vectors() {
+    let mut v = vec![1, 2, 3, 4, 5];
+    let _first = &v[0];
+    v.push(6);
+
+    // v cant do this since v might exist on a entirely new block of mem when enlarged
+    // println!("the first element is {first}");
+
+    for i in &v {
+        println!("{i}");
+    }
+    for i in &mut v {
+        *i += 50;
+    }
+
+    let list_of_nums = vec![
+        vec![1, 2, 3, 4, 5],
+        vec![3, 3, 3, 5, 2, 1],
+        vec![3, 3, 1, 1],
+        vec![3, 3, 2, 1],
+    ];
+    for nums in &list_of_nums {
+        println!("mode of {:?} is {}", nums, mode(nums));
+    }
+}
+
+fn mode(nums: &Vec<usize>) -> usize {
+    let mut map = HashMap::new();
+    for &num in nums {
+        let count = map.entry(num).or_insert(0);
+        *count += 1;
+    }
+
+    let mut mode = None;
+    let mut max_count = 0;
+
+    for (number, count) in map {
+        if count > max_count {
+            max_count = count;
+            mode = Some(number);
+        }
+    }
+
+    mode.expect("List cannot be empty")
+}
+
+fn strings() {
+    let mut s1 = String::from("foo");
+    let s2 = String::from("bar");
+    s1.push_str(&s2);
+    println!("s2 is {s2}");
+
+    let s3 = s1 + &s2; // s1 is moved
+    println!("{}", s3);
+
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+
+    let s = format!("{s1}-{s2}-{s3}"); // like println! uses references so values not moved
+    println!("{}, {} {} {}", s, s1, s2, s3);
+    let s = String::from("नमस्ते");
+    for c in s.chars() {
+        println!("{c}");
+    }
+}
+
+fn hashmaps() {
+    let mut scores = HashMap::new();
+    // primitives will be copied into the map but non-prims will be moved
+    scores.insert("Blue", 10);
+    scores.insert("Yellow", 30);
+    scores.insert("Blue", 20); // overwrites prev values
+
+    // insert only if new key
+    scores.entry("Black").or_insert(50);
+    scores.entry("Yellow").or_insert(50);
+    scores.entry("Blue").or_insert(50);
+
+    println!("{:?}", scores);
+    let _score = scores.get("Blue").copied().unwrap_or(0);
+
+    for (key, val) in &scores {
+        println!("{key}: {val}")
+    }
+    count_words();
+}
+
+fn count_words() {
+    let text = "hello world wonderful world";
+    let mut map = HashMap::new();
+
+    for word in text.split_whitespace() {
+        let count = map.entry(word).or_insert(0);
+        *count += 1;
+    }
+    println!("{:?}", map);
 }

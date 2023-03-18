@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::garden::vegetables::Asparagus;
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 
 pub mod garden;
 
@@ -10,9 +10,13 @@ fn main() {
     // using_struct_methods();
     // using_enums();
     // project_structure();
-    vectors();
+    // vectors();
     // strings();
     // hashmaps();
+    // read_lines2();
+    // using_generics();
+    // playing_with_traits();
+    life_times();
 }
 
 fn f_to_c(f: f64) -> f64 {
@@ -350,4 +354,339 @@ fn count_words() {
         *count += 1;
     }
     println!("{:?}", map);
+}
+
+fn erroring() {
+    use std::fs::File;
+    use std::io::ErrorKind;
+
+    let filename = "hello.txt";
+
+    let greeting_file_result = File::open(filename);
+    let _greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create(filename) {
+                Ok(file) => file,
+                Err(err) => panic!("Problem creating the file: {:?}", err),
+            },
+            other_error => panic!("Problem opening the file: {:?}", other_error),
+        },
+    };
+
+    let _greeting_file = File::open(filename).unwrap_or_else(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            File::create(filename)
+                .unwrap_or_else(|error| panic!("Problem creating the file: {:?}", error))
+        } else {
+            panic!("Problem opening the file: {:?}", error);
+        }
+    });
+}
+
+fn get_username(filename: &str) -> Result<String, std::io::Error> {
+    let mut username_file = std::fs::File::open(filename)?;
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+    Ok(username)
+}
+
+fn get_username_shorter(filename: &str) -> Result<String, std::io::Error> {
+    let mut username = String::new();
+    std::fs::File::open(filename)?.read_to_string(&mut username)?;
+    Ok(username)
+}
+
+fn get_username_even_shorter(filename: &str) -> Result<String, std::io::Error> {
+    std::fs::read_to_string(filename)
+}
+
+fn read_lines() {
+    let mut file = std::fs::File::open("lines").expect("couldn't open file");
+    let mut lines = String::new();
+    file.read_to_string(&mut lines).unwrap();
+    lines.lines().for_each(|line| println!("{}", line));
+}
+
+fn read_lines2() {
+    std::fs::read_to_string("lines")
+        .unwrap()
+        .lines()
+        .enumerate()
+        .filter(|(idx, _)| idx % 2 == 0)
+        .skip(2)
+        .take(2)
+        .for_each(|(_, line)| println!("{}", line));
+}
+
+enum Colors {
+    Red,
+    Green,
+    Blue,
+}
+
+fn print_color(color: Colors) {
+    match color {
+        Colors::Red => println!("red",),
+        Colors::Green => println!("green",),
+        Colors::Blue => println!("blue",),
+    };
+}
+
+fn using_generics() {
+    let nums = vec![34, 50, 25, 100, 65];
+    println!("the largest of {:?} is {}", nums, largest(&nums));
+
+    let chars = vec!['y', 'm', 'a', 'q'];
+    println!("the largest of {:?} is {}", chars, largest(&chars));
+}
+
+fn largest<T: std::cmp::PartialOrd>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+    for item in list {
+        if largest < item {
+            largest = item;
+        }
+    }
+    return largest;
+}
+
+pub trait Summary {
+    fn summarize(&self) -> String;
+    fn some_default_method(&self) -> String {
+        String::from("doing some default stuff")
+    }
+}
+
+#[derive(Debug)]
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+#[derive(Debug)]
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+
+    fn some_default_method(&self) -> String {
+        String::from("Tweet overrides trait default behavior")
+    }
+}
+
+fn notify(item: &(impl Summary + std::fmt::Debug)) {
+    println!("Breaking news! {}", item.summarize());
+}
+
+// can only ever return one type tho
+fn get_summarizable() -> impl Summary {
+    Tweet {
+        username: String::from("horse_ebooks"),
+        content: String::from("of course, as you probably already know, people"),
+        reply: false,
+        retweet: false,
+    }
+}
+
+fn playing_with_traits() {
+    let article = NewsArticle {
+        headline: String::from("Penguins win the Stanley Cup Championship!"),
+        location: String::from("Pittsburgh, PA, USA"),
+        author: String::from("Iceburgh"),
+        content: String::from(
+            "The Pittsburgh Penguins once again are the best \
+             hockey team in the NHL.",
+        ),
+    };
+
+    let tweet = Tweet {
+        username: String::from("horse_ebooks"),
+        content: String::from("of course, as you probably already know, people"),
+        reply: false,
+        retweet: false,
+    };
+
+    println!(
+        "article:\n\t{}\n\t{}\n",
+        article.summarize(),
+        article.some_default_method()
+    );
+    println!(
+        "tweet:\n\t{}\n\t{}\n",
+        tweet.summarize(),
+        tweet.some_default_method()
+    );
+
+    notify(&article);
+    notify(&tweet);
+
+    let pair = Pair { x: 10, y: 2 };
+    pair.cmp_display();
+}
+
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl<T: Display + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("The largest member is x = {}", self.x);
+        } else {
+            println!("The largest member is y = {}", self.y);
+        }
+    }
+}
+
+fn life_times() {
+    // let foo = vec![1,3,4,5].iter();
+    // foo.for_each(|x| println!("{}", x));
+
+    let r;
+    let _s;
+    {
+        let x = "xyz";
+        let y = 12;
+        r = x;
+        _s = &y;
+    }
+    println!("r: {}", r);
+    // println!("s: {}", _s);
+    // ^ can't do cuz the reference to `&y` is gone
+
+    // basic example - lifetime of `string1`, `string2` & `result` is the same
+    let string1 = String::from("abcd");
+    let string2 = "xyz";
+    let result = longest_string(string1.as_str(), string2);
+    println!("The longest string is {}", result);
+
+    // noice example
+    let string1 = String::from("long string is long");
+    let _result;
+    {
+        let string2 = String::from("xyz");
+        _result = longest_string(string1.as_str(), string2.as_str());
+    }
+    // println!("The longest string is {}", result);
+    // ^ can't do cuz `longest_string` `result` only lives as long as the shorter lifetime, in this
+    // case the `string2` even though WE know that `_result` would really be `string1`, the
+    // compiler doesn't know that
+
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = "xyz";
+        result = longest_string(string1.as_str(), string2);
+    }
+    println!("The longest string is {}", result);
+    // ^ this is actually ok cuz string literals are stored on the binary as read-only data so they
+    // have infinite lifetime (known is `'static`)
+
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = String::from("xyz");
+        result = longest_string_dumb(string1.as_str(), string2.as_str());
+    }
+    println!("The longest string is {}", result);
+    // ^ now this is allowed cuz `longest_string_dumb` is ALWAYS returnings `string1` which has a
+    // longer lifetime than `string2` and the `result`'s lifetime is tied to that of `string1`
+
+    // struct that borrow variables need to be aware of lifetimes
+    lifetimes_with_structs();
+    println!("string literals are special: {}", static_lifetimes());
+
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = String::from("xyz");
+        _ = generic_type_lifetime_shenanigans(string1.as_str(), string2.as_str(), 12);
+        result = generic_type_lifetime_shenanigans(
+            string1.as_str(),
+            string2.as_str(),
+            "generics are dank",
+        );
+        println!("The longest string is {}", result);
+    }
+}
+
+fn longest_string<'a>(s1: &'a str, s2: &'a str) -> &'a str {
+    if s1.len() > s2.len() {
+        return s1;
+    }
+    return s2;
+}
+
+fn longest_string_dumb<'a>(s1: &'a str, s2: &str) -> &'a str {
+    if s1.len() > s2.len() {
+        return s1;
+    }
+    return s1;
+}
+
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        return 3;
+    }
+
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {announcement}");
+        return self.part;
+    }
+}
+
+fn lifetimes_with_structs() {
+    let novel = String::from("Call me Ishmael, Some years ago...");
+    let first_sentence = novel
+        .split(".")
+        .next()
+        .expect("Could not find a complete sentence");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+    println!("{}", i.part);
+}
+
+fn static_lifetimes() -> &'static str {
+    return "I live forever!!!";
+}
+
+fn generic_type_lifetime_shenanigans<'a, T>(x: &'a str, y: &'a str, ann: T) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {}", ann);
+    if x.len() > y.len() {
+        return x;
+    }
+    return y;
 }

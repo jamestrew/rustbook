@@ -690,3 +690,10 @@ where
     }
     return y;
 }
+
+fn foo() {
+    let f = String::from("yoyo");
+    let a = move || f.to_lowercase();
+    let b = move || f.to_uppercase();
+    println!{"{} {}", a(), b()};
+}
